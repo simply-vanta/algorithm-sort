@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorting Lab — Complete Edition</title>
+<style>
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+body { max-width: 760px; margin: auto; padding: 16px; }
+.panel { background: color-mix(in srgb, CanvasText 8%, Canvas); border-radius: 12px; padding: 10px; margin: 8px 0; }
+button,select,input { font: inherit; }
+.btn { padding: 9px; border-radius: 9px; border: 1px solid #8885; background: #8882; color: inherit; font-weight: 600; cursor: pointer; }
+.primary { background: #3478f6; color: white; border: 0; }
+.row { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:6px 0; }
+input[type=color] { width:40px;height:28px;border:0;background:none; }
+.presets { display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px; }
+.presets button { font-size:12px; }
+select { width:100%;padding:10px;border-radius:9px;background:Canvas;color:CanvasText;border:1px solid #8885;margin-top:8px; }
+#chart { width:100%;height:230px;background:#8881;border-radius:12px;display:block; }
+</style>
+</head>
+<body>
+<div id="sortfinal">
+<h1>Sorting Lab — Complete Edition</h1>
+<div class="panel">
+<div class="row"><b>Number of values</b><b id="count">100</b></div>
+<input id="n" type="range" min="10" max="1000" value="100" step="1" style="width:100%;accent-color:#5289f5">
+<div class="presets">
+<button class="btn preset" data-n="10">10</button>
+<button class="btn preset" data-n="50">50</button>
+<button class="btn preset" data-n="100">100</button>
+<button class="btn preset" data-n="250">250</button>
+<button class="btn preset" data-n="500">500</button>
+<button class="btn preset" data-n="1000">1,000</button>
+</div>
+</div>
+<div class="panel">
+<b>Initial Arrangement</b>
+<select id="pattern">
+<option value="random">Random</option><option value="ascending">Perfect ascending slope</option>
+<option value="descending">Perfect descending slope</option><option value="nearly">Nearly sorted</option>
+<option value="mountain">Mountain</option><option value="valley">Valley</option>
+<option value="organ">Organ pipe</option><option value="custom">Custom range slope</option>
+</select>
+<div id="custom" style="display:none;margin-top:8px">
+<div class="row"><label>Start value</label><input id="from" type="number" value="1" style="width:90px"></div>
+<div class="row"><label>End value</label><input id="to" type="number" value="100" style="width:90px"></div>
+</div>
+<button id="generate" class="btn" style="width:100%;margin-top:8px">↻ Generate Pattern</button>
+</div>
+<div class="panel">
+<b>Sorting Algorithm</b>
+<select id="alg">
+<option value="tim">Timsort-style Hybrid</option><option value="merge">Merge Sort</option>
+<option value="quick">Quick Sort</option><option value="heap">Heap Sort</option><option value="insertion">Insertion Sort</option>
+</select>
+<div id="desc" style="font-size:12px;opacity:.7;margin-top:6px">Sorts small runs with insertion sort, then merges runs.</div>
+</div>
+<div class="panel">
+<div class="row"><b>Speed</b><span id="speedlabel">Normal</span></div>
+<input id="speed" type="range" min="0" max="100" value="50" style="width:100%">
+<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.65"><span>Slow</span><span>Fast</span></div>
+<button id="turbo" class="btn" style="width:100%;margin-top:8px">⚡ SUPER DUPER FAST: OFF</button>
+</div>
+<div class="panel">
+<div class="row"><b>Sound Volume</b><span id="volumeLabel">40%</span></div>
+<input id="volume" type="range" min="0" max="100" value="40" style="width:100%">
+<button id="sound" class="btn" style="width:100%;margin-top:8px">🔊 Sound On</button>
+</div>
+<div class="panel">
+<b>Colors</b>
+<div class="row">Unsorted <input type="color" id="blue" value="#548cf5"></div>
+<div class="row">Checking <input type="color" id="red" value="#ff5959"></div>
+<div class="row">Pivot/minimum <input type="color" id="yellow" value="#ffbd35"></div>
+<div class="row">Sorted <input type="color" id="green" value="#36b37e"></div>
+<button id="colorsReset" class="btn" style="width:100%">Reset Colors</button>
+</div>
+<div class="panel">
+<b>Unsorting</b>
+<select id="unsortMode">
+<option value="shuffle">Shuffle — completely random</option><option value="reverse">Reverse — flip the order</option>
+<option value="chaos">Chaos — swap random sections</option>
+</select>
+<button id="unsort" class="btn" style="width:100%;margin-top:8px">⤨ UNSORT</button>
+<div style="font-size:12px;opacity:.7;margin-top:6px">Rearranges the existing values without generating new numbers.</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button id="start" class="btn primary">▶ Start Sorting</button><button id="reset" class="btn">↻ Reset / Generate</button>
+</div>
+<div class="panel" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">
+<span>Status: <b id="status">Ready</b></span><span>Comparisons: <b id="comparisons">0</b></span>
+<span>Moves: <b id="moves">0</b></span><span>Time: <b id="time">0 ms</b></span>
+</div>
+<canvas id="chart"></canvas>
+<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.65;margin-top:5px"><span>Smallest</span><span>Largest</span></div>
+<div id="result" style="font-size:12px;text-align:center;margin:8px"></div>
+</div>
+<script>
+(()=>{
+const root=document.getElementById('sortfinal'),$=id=>root.querySelector('#'+id);
+const cv=$('chart'),ctx=cv.getContext('2d');
+let a=[],running=false,turbo=false,soundOn=true,volume=.4;
+let cmpCount=0,moves=0,sorted=0,active=-1,pivot=-1,ac=null,ops=0;
+let startTime=0,lastDraw=0;
+const desc={tim:'Insertion-sort small runs, then merge them together.',merge:'Repeatedly splits the list and merges sorted sections.',quick:'Partitions values around a pivot.',heap:'Builds a heap and extracts values into order.',insertion:'Inserts each value into the sorted section.'};
+function audio(){if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();}
+function beep(v,d=.035){if(!soundOn||!ac||!volume)return;let o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=180+(v%100)*7;g.gain.setValueAtTime(volume*.09,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);}
+function victory(){if(!soundOn||!ac)return;[440,554,659,880].forEach((f,i)=>{let o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+i*.13;o.frequency.value=f;g.gain.setValueAtTime(volume*.12,t);g.gain.exponentialRampToValueAtTime(.001,t+.23);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.23);});}
+function draw(){let w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;ctx.clearRect(0,0,w,h);let gap=a.length>400?.15:a.length>150?.5:1,bw=Math.max(.5,(w-gap*(a.length-1))/a.length);for(let i=0;i<a.length;i++){let bh=a[i]/100*h;ctx.fillStyle=i<sorted?$('green').value:i===active?$('red').value:i===pivot?$('yellow').value:$('blue').value;ctx.fillRect(i*(bw+gap),h-bh,bw,bh);}}
+function resize(){let r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);draw();}
+function pattern(){let n=+$('n').value,arr=[],mode=$('pattern').value,lo=Number($('from').value),hi=Number($('to').value);if(!Number.isFinite(lo))lo=1;if(!Number.isFinite(hi))hi=100;for(let i=0;i<n;i++){let x=i/(n-1),v;switch(mode){case'ascending':v=1+x*99;break;case'descending':v=100-x*99;break;case'nearly':v=1+x*99;break;case'mountain':v=1+Math.abs(1-2*x)*99;break;case'valley':v=1+(1-Math.abs(1-2*x))*99;break;case'organ':v=1+(x<.5?x*2:(1-x)*2)*99;break;case'custom':v=lo+x*(hi-lo);break;default:v=Math.random()*99+1;}arr.push(v);}if(mode==='nearly'){for(let j=0;j<Math.max(2,n*.04);j++){let i=Math.random()*n|0,k=Math.random()*n|0;[arr[i],arr[k]]=[arr[k],arr[i]];}}if(mode==='random')arr.sort(()=>Math.random()-.5);a=arr;cmpCount=moves=sorted=ops=0;active=pivot=-1;$('comparisons').textContent='0';$('moves').textContent='0';$('time').textContent='0 ms';$('status').textContent='Ready';$('result').textContent='';draw();}
+function unsortArray(mode){if(running||!a.length)return;if(mode==='shuffle'){for(let i=a.length-1;i>0;i--){let j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}}else if(mode==='reverse'){a.reverse();}else if(mode==='chaos'){for(let k=0;k<a.length*2;k++){let size=Math.max(2,Math.floor(Math.random()*Math.max(2,a.length/10)));size=Math.min(size,a.length);let i=Math.floor(Math.random()*(a.length-size+1)),j=Math.floor(Math.random()*(a.length-size+1));if(i===j)continue;const chunk=a.splice(i,size);a.splice(j,0,...chunk);}}sorted=0;active=pivot=-1;cmpCount=moves=ops=0;$('comparisons').textContent='0';$('moves').textContent='0';$('time').textContent='0 ms';$('status').textContent='Unsorted!';$('result').textContent='Ready to sort again.';draw();if(soundOn){audio();beep(30);beep(75);beep(45);}}
+function update(){$('comparisons').textContent=cmpCount.toLocaleString();$('moves').textContent=moves.toLocaleString();$('time').textContent=(performance.now()-startTime).toFixed(1)+' ms';}
+function delay(){if(turbo)return 0;let s=+$('speed').value;return s>92?0:s>75?1:s>50?4:s>25?12:35;}
+async function step(v){ops++;beep(v);const now=performance.now();let drawInterval=turbo?100:a.length>700?60:a.length>300?30:0;if(!turbo||now-lastDraw>drawInterval){draw();update();lastDraw=now;let d=delay();if(d)await new Promise(r=>setTimeout(r,d));else await new Promise(r=>setTimeout(r,0));}}
+function cmp(x,y){cmpCount++;return x-y;}
+async function put(i,v){a[i]=v;moves++;active=i;await step(v);}
+async function swap(i,j){if(i===j)return;[a[i],a[j]]=[a[j],a[i]];moves+=3;active=i;pivot=j;await step(a[i]);}
+async function insertion(lo,hi){for(let i=lo+1;i<hi;i++){let v=a[i],j=i;while(j>lo){pivot=j-1;if(cmp(a[j-1],v)<=0)break;await put(j,a[j-1]);j--;}await put(j,v);}}
+async function merge(lo,mid,hi){let L=a.slice(lo,mid),R=a.slice(mid,hi),i=0,j=0,k=lo;while(i<L.length&&j<R.length){active=k;pivot=mid+j;if(cmp(L[i],R[j])<=0)await put(k++,L[i++]);else await put(k++,R[j++]);}while(i<L.length)await put(k++,L[i++]);while(j<R.length)await put(k++,R[j++]);}
+async function mergeSort(lo,hi){if(hi-lo<=1)return;let mid=(lo+hi)>>1;await mergeSort(lo,mid);await mergeSort(mid,hi);await merge(lo,mid,hi);}
+async function timsort(){let n=a.length,run=32;for(let i=0;i<n;i+=run)await insertion(i,Math.min(i+run,n));for(let sz=run;sz<n;sz*=2)for(let l=0;l<n;l+=sz*2){let m=Math.min(l+sz,n),r=Math.min(l+sz*2,n);if(m<r)await merge(l,m,r);}}
+async function quick(lo,hi){if(lo>=hi)return;let p=a[hi],i=lo;pivot=hi;for(let j=lo;j<hi;j++){active=j;if(cmp(a[j],p)<0)await swap(i++,j);else await step(a[j]);}await swap(i,hi);await quick(lo,i-1);await quick(i+1,hi);}
+async function heap(){let n=a.length;async function h(s,i){let big=i,l=i*2+1,r=l+1;if(l<s){active=l;if(cmp(a[l],a[big])>0)big=l;await step(a[l]);}if(r<s){active=r;if(cmp(a[r],a[big])>0)big=r;await step(a[r]);}if(big!==i){await swap(i,big);await h(s,big);}}for(let i=(n/2|0)-1;i>=0;i--)await h(n,i);for(let i=n-1;i>0;i--){await swap(0,i);sorted=n-i;await h(i,0);}}
+async function run(){if(running)return;running=true;audio();$('start').disabled=$('reset').disabled=$('unsort').disabled=$('generate').disabled=true;$('n').disabled=$('pattern').disabled=$('alg').disabled=$('speed').disabled=$('unsortMode').disabled=true;$('status').textContent='Sorting...';cmpCount=moves=sorted=ops=0;startTime=performance.now();lastDraw=0;try{let alg=$('alg').value;if(alg==='tim')await timsort();if(alg==='merge')await mergeSort(0,a.length);if(alg==='quick')await quick(0,a.length-1);if(alg==='heap')await heap();if(alg==='insertion')await insertion(0,a.length);sorted=a.length;active=pivot=-1;draw();update();$('status').textContent='Complete!';$('result').textContent=`${alg.toUpperCase()} sorted ${a.length.toLocaleString()} values!`;victory();}catch(e){$('status').textContent='Error';$('result').textContent=e.message;}running=false;$('start').disabled=$('reset').disabled=$('unsort').disabled=$('generate').disabled=false;$('n').disabled=$('pattern').disabled=$('alg').disabled=$('speed').disabled=$('unsortMode').disabled=false;}
+$('n').oninput=()=>{$('count').textContent=Number($('n').value).toLocaleString();pattern();};
+root.querySelectorAll('.preset').forEach(b=>b.onclick=()=>{$('n').value=b.dataset.n;$('count').textContent=Number(b.dataset.n).toLocaleString();pattern();});
+$('pattern').onchange=()=>{$('custom').style.display=$('pattern').value==='custom'?'block':'none';pattern();};
+$('generate').onclick=pattern;$('reset').onclick=pattern;$('start').onclick=run;$('unsort').onclick=()=>unsortArray($('unsortMode').value);
+$('alg').onchange=()=>{$('desc').textContent=desc[$('alg').value];};
+$('speed').oninput=()=>{let v=+$('speed').value;$('speedlabel').textContent=v>92?'Ultra fast':v>75?'Fast':v>50?'Normal':v>25?'Slow':'Very slow';};
+$('turbo').onclick=()=>{turbo=!turbo;$('turbo').textContent='⚡ SUPER DUPER FAST: '+(turbo?'ON':'OFF');$('turbo').style.background=turbo?'#e6a500':'';$('turbo').style.color=turbo?'#111':'';};
+$('volume').oninput=()=>{volume=+$('volume').value/100;$('volumeLabel').textContent=$('volume').value+'%';};
+$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent=soundOn?'🔊 Sound On':'🔇 Sound Off';if(soundOn){audio();beep(50);}};
+['blue','red','yellow','green'].forEach(id=>$(id).oninput=draw);
+$('colorsReset').onclick=()=>{$('blue').value='#548cf5';$('red').value='#ff5959';$('yellow').value='#ffbd35';$('green').value='#36b37e';draw();};
+pattern();resize();window.addEventListener('resize',resize);
+})();
+</script>
+</body>
+</html>
